@@ -13,9 +13,8 @@ target_image_name=$3
 # Function to check if image has changed
 function image_changed() {
   local image_id=$(docker inspect --format="{{ .Image }}" "$container_name")
-  echo $image_id
   local image_latest=$(docker image inspect --format="{{ .Id }}" "$target_image_name" | head -n 1)
-  echo $image_latest
+  echo "$(date +%Y-%m-%d_%H-%M-%S) - Service: $service_name - Current Image Hash: $image_id - New Image Hash: $image_latest"
   if [[ "$image_id" != "$image_latest" ]]; then
     return 0
   fi
@@ -27,6 +26,6 @@ docker-compose pull "$service_name"
 
 # Check if image has changed and restart if necessary
 if image_changed; then
-  echo image changed
+  echo "$(date +%Y-%m-%d_%H-%M-%S) - image changed, performing docker-compose up -d $service_name"
   docker-compose up -d "$service_name"
 fi
