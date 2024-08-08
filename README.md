@@ -8,9 +8,6 @@ Other cleaner solutions such as [containrrr/watchtower](https://github.com/conta
 ## Usage
 Make sure the script has execution permission and add it to `crontab`
 ```
-0 3 * * * /path/to/docker_update_script.sh <image-tag> <service-name-in-docker-compose> <clean-up[true, false]> # this runs the script every day at 3AM
+0 3 * * * cd /path/to/compose/folder && /path/to/docker_update_script.sh <container_name> <service_name> <target_image_name> # this runs the script every day at 3AM
 # clean up use docker prune to clean orphan images
 ```
-
-## Limitation
-- Do NOT use in development host as there is an option to clean all orphan image which will delete them. This is to ensure the image don't fill up a production service host but will delete other image non selectively.

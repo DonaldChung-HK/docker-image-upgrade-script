@@ -1,45 +1,32 @@
 #!/bin/bash
 
-update_docker_service() {
-    local image_name=$1
-    local service_name=$2
-    local is_pruning=$3
-    # Pull the latest image
-    echo "Pulling the latest $image_name image..."
-    docker pull $image_name
+if [ -z "$1" ]; then
+  echo "Usage: $0 <container_name> <service_name> <target_image_name>"
+  exit 1
+fi
 
-    # Check if the image was updated
-    IMAGE_UPDATED=$(docker images --filter=reference="$image_name" --format "{{.ID}}" | head -n 1)
+container_name=$1
+service_name=$2
+target_image_name=$3
 
-    # Get the current running container ID for the service
-    CURRENT_CONTAINER_ID=$(docker ps --filter="name=$container_name" --format "{{.ID}}")
 
-    if [ -n "$CURRENT_CONTAINER_ID" ]; then
-        echo "Current running container ID: $CURRENT_CONTAINER_ID"
-    else
-        echo "No running container found for $image_name"
-    fi
-
-    # Run docker-compose up for the service
-    echo "Running docker-compose up for the $service_name service..."
-    docker-compose up -d $service_name
-
-    # Get the new running container ID for the service
-    NEW_CONTAINER_ID=$(docker ps --filter="name=$container_name" --format "{{.ID}}" | head -n 1)
-
-    if [ "$CURRENT_CONTAINER_ID" != "$NEW_CONTAINER_ID" ]; then
-        echo "New container ID: $NEW_CONTAINER_ID"
-        if [ "$is_prunning" = "true" ]; then
-            echo "Cleaning up the old images that is more than 10 days old..."
-            docker image prune -a --force --filter "until=240h"
-        fi
-        
-    else
-        echo "No new container was created. The image might not have been updated."
-    fi
-
-    echo "Script execution completed."
+# Function to check if image has changed
+function image_changed() {
+  local image_id=$(docker inspect --format="{{ .Image }}" "$container_name")
+  echo $image_id
+  local image_latest=$(docker image inspect --format="{{ .Id }}" "$target_image_name" | head -n 1)
+  echo $image_latest
+  if [[ "$image_id" != "$image_latest" ]]; then
+    return 0
+  fi
+  return 1
 }
 
-# Example usage:
-update_docker_service "$1" "$2" "$3"
+# Pull the Nginx image
+docker-compose pull "$service_name"
+
+# Check if image has changed and restart if necessary
+if image_changed; then
+  echo image changed
+  docker-compose up -d "$service_name"
+fi
